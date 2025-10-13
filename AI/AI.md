@@ -559,6 +559,9 @@ l_end = 680
 attn_bias_for_masking : [1, 1, l_end, l_end] this is masking
 
 x_BLC->transformer->x_BLC
+
+TODO: there we using diffusion in x_BLC
+
 x_BLC : [B, 680, C2] -> [B, 680, C3] in this case C3 = 4096
 return x_BLC
 
@@ -602,7 +605,8 @@ idx_Bl_list = []
 accu_BChw : [1, 32, 16, 16] all zero
 
 
-
+the main point is the function get_scale_logits
+TODO: add the diffusion in get_scale_logits
 
 
 ## eval.ipynb
@@ -612,6 +616,7 @@ gt_BL_super = cat(gt_idx_Bl_super) : [B, 680]
 x_BLCv_wo_first_l_super : idxBl_to_var_input(gt_idx_Bl_super) # torch.Size([4, 679, 32])
 
 ret, idx_Bl_list, img = srvar.autoregressive_infer_cfg(...)
+
 
 
 
