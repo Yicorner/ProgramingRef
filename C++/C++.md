@@ -187,6 +187,7 @@ glGenTextures(1, &textureID);
 // 错误！OpenGL不知道你要设置哪个纹理的参数
 // 因为你没有绑定任何纹理到GL_TEXTURE_2D目标
 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+![](20260203112135.png)
 ## glCreateTextures
 对比于glGenTexture不需要手动绑定也不需要手动解绑
 ## glCreateVertexArrays
@@ -747,7 +748,8 @@ using ret_t = decltype(getRetValue(f));
 ![](20250811115405.png)
 ![](20250811115414.png)
 
-
+## 移动构造函数、拷贝构造函数
+![](20260203180131.png)
 
 # entt
 ## 概述

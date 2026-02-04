@@ -1,0 +1,160 @@
+## 个人简介
+面试官好，我叫裘博航，本科毕业于重庆大学计算机系，目前就读于北航，由于热爱编程与思考，在本科期间，我参加过许多的算法竞赛，我觉得我很享受这种思考、挑战自己的感觉。
+我对于C++语言可以说是比较熟悉，本科期间自己写过一个简单的编译器，在研一的时候开发过一个增强现实的项目，一个月的时间，从一开始对渲染语言、CT数据、深度相机一无所知到完成这个项目
+也让我学习到了很多东西，认识到了自学的重要性。从去年开始，我打算好了毕业打算就业渲染这方面的工作
+、于是就是开始在闲暇时间跟着油管博主theCherno学习游戏引擎，虽然也不能说把这个项目完完全全吃透、
+但看懂了解其中的各个部分是没有问题的。从去年八月份到现在在快手的特效引擎部门实习，
+实现引擎能力到UI的接口封装与事件通信机制
+开发材质属性，对opengl和shader语言比较熟悉。
+以上就是我的基本情况（虽然经验不算丰富，但学习意愿很强，非常感谢贵单位给我一个面试的机会）。
+
+
+## 简历
+这是我自学跟着油管up 主cherno 做的2D 游戏引擎hazel，实现了渲染系统，物理系统、输入系统、
+场景与实体系统、UI 系统、日志系统等。
+
+## 项目中学到了什么？
+1、会使用了工具的基本使用，包括visual studio code编辑器、premake构建工具、git工具
+2、对C++的编译过程有了更清楚的了解、C++ 的编译与链接过程，包括头文件的引用、静态库与动态库的生成与使用、 预编译头文件（PCH）
+3、了解了游戏引擎是干什么的、以及它游戏引擎结构大概是怎么样的、渲染、输入处理、层系统、事件分发和场景管理等
+4、对C++语言、shader语言、OpenGL语言有更近一步的了解。回调函数、智能指针、基本的图形管线流程与常用 API 调用等
+
+Q：想到一个问题，预编译头文件中基本全是h文件，预编译是在编译这些h文件吗？
+A：有hzpch.cpp   文件
+
+Q：果我在PCH中编译了string头文件，之后我在另一个cpp文件中写include string会重新编译string吗
+A：永远把 #include "pch.h" 放在每个 .cpp 文件的最前面！
+
+## 项目实现了哪些功能
+1.整个相机旋转，移动视角
+2.加载场景，场景序列化
+3.点击选中
+4.entity移动旋转，imguizmo
+5.碰撞体积，box2d
+6.simulate，play
+
+我明天要面试了，针对这个项目，请帮我猜测一下面试官可能会问哪些问题（先不回答，只列出问题），以下是我的关于这个项目的简历
+## 简历
+这是我自学跟着油管up 主cherno 做的2D 游戏引擎hazel，实现了渲染系统，物理系统、输入系统、
+场景与实体系统、UI 系统、日志系统、资源管理系统、C# 脚本系统等。
+
+
+## 简单介绍
+这是我跟着 Cherno 教程自学做的一个 2D 游戏引擎 Hazel，底层用 OpenGL 做渲染，通过 RendererAPI 抽象 把具体 API 隔开，方便以后扩展；2D 渲染做了 批处理（batching） 来减少 Draw Call。
+场景和实体用的是 ECS，用 entt 做组件系统，物理用 Box2D，和 Transform、碰撞器组件做了对接。
+脚本这边用 Mono 跑 C#，通过 ScriptGlue 把引擎的 Entity、Transform、Input 等暴露成 C# API，支持在编辑器里挂脚本、跑游戏。
+场景用 YAML 序列化 存盘，日志用 spdlog，事件是 阻塞式分发，整体是 Layer + LayerStack 的架构，还实现了统计与性能分析。
+从渲染管线、ECS 设计到 C# 和 C++ 的绑定，到脚本系统，都是自己搭的。
+
+
+功能：
+1.编辑器中「选中实体」「Gizmo 变换」和场景里实体、Transform 是怎么联动的？
+
+## 脚本系统
+脚本系统实现简述：
+C++ 用 Mono 加载 C# 程序集（如 Hazel-ScriptCore.dll），启动时遍历程序集里所有继承自 Entity 的类，按「命名空间.类名」建一张表；运行时，对每个挂了 Script 组件的实体，根据组件里填的类名从表中找到对应 C# 类，在 Mono 里 new 出实例，把实体的 UUID 传给 C# 的 Entity 构造函数，并调用一次 OnCreate，之后每帧根据实体 UUID 找到对应脚本实例并调用 OnUpdate(dt)；C# 访问引擎能力（变换、物理、输入等）则通过 Mono 的 Internal Call 注册 C++ 函数，由 C# 的 InternalCalls 静态方法调过去，形成 C++ 驱动生命周期、C# 通过 Internal Call 回调 C++ 的双向绑定。
+
+Init()
+  └─ LoadAssembly("Hazel-ScriptCore.dll")
+  └─ LoadAssemblyClasses()  ← 扫描 Entity 子类，填 EntityClasses["Sandbox.Player"] = ScriptClass(...)
+  └─ ScriptGlue::RegisterComponents/Functions()
+
+用户点 Play → Scene::OnRuntimeStart()
+  └─ 对每个带 ScriptComponent 的 entity:
+       ScriptEngine::OnCreateEntity(entity)
+         ├─ 从 entity 取 sc.ClassName（如 "Sandbox.Player"）
+         ├─ 用 EntityClasses[sc.ClassName] 得到 ScriptClass
+         ├─ new ScriptInstance(scriptClass, entity)  ← 创建 ScriptInstance
+         │    ├─ scriptClass->Instantiate()  → 在 C# 里 new Player()
+         │    ├─ 调 C# Entity.ctor(entity.GetUUID())  ← 传入 Entity UUID，C# 里 ID = 这个值
+         │    └─ 缓存 OnCreate、OnUpdate 的 Method*
+         ├─ EntityInstances[entity.GetUUID()] = instance
+         └─ instance->InvokeOnCreate()  → 调 C# 的 OnCreate() 一次
+
+每一帧 Scene::OnUpdateRuntime(ts)
+  └─ 对每个带 ScriptComponent 的 entity:
+       ScriptEngine::OnUpdateEntity(entity, ts)
+         ├─ instance = EntityInstances[entity.GetUUID()]
+         └─ instance->InvokeOnUpdate(ts)  → 调 C# 的 OnUpdate(float ts)
+
+## 编辑器中「选中实体」「Gizmo 变换」和场景里实体、Transform 是怎么联动的？
+视口点击  → ReadPixel(1, mouseX, mouseY) 得到 entity id  → m_HoveredEntity = Entity(id, scene)  → OnMouseButtonPressed: SetSelectedEntity(m_HoveredEntity)  → 选中实体 = m_SceneHierarchyPanel.m_SelectionContext每帧 Gizmo：  → selectedEntity = GetSelectedEntity()  → tc = selectedEntity.GetComponent<TransformComponent>()  → transform = tc.GetTransform()  → ImGuizmo::Manipulate(..., transform)  // 原地改 transform  → if (IsUsing()) DecomposeTransform → tc.Translation / tc.Rotation / tc.Scale = ...场景渲染 / 物理 / 脚本  → 都读同一批实体的 TransformComponent（同上 tc）
+一句话：选中实体由层级面板或视口点击写入 SceneHierarchyPanel；Gizmo 每帧只对「当前选中实体」的 TransformComponent 做「矩阵 → Manipulate → 再分解写回 T/R/S」；场景里看到的实体用的就是这份 Transform，所以选中、Gizmo 和场景中的实体/Transform 是同一套数据、直接联动。
+
+## layer和layerStack
+小结（面试可直接说）
+维度	与 Push 顺序的关系
+更新	先 push 的先 OnUpdate
+渲染	先 push 的先 OnImGuiRender
+事件	后 push 的先 OnEvent（逆序，便于 UI 层先拦截）
+Layer 负责单层逻辑（更新/渲染/事件），LayerStack 负责维护层的顺序并区分普通层与 Overlay；push 顺序直接决定了更新和渲染顺序，而事件顺序故意做成逆序以支持“顶层优先”的事件消费。
+
+## 一帧发生的事情
+见applicaton::run函数
+![](20260203233040.png)
+事件：在步骤 4 的 glfwPollEvents() 中触发并分发，所以是 事件在“更新 + ImGui”之后、同一帧内被处理；下一帧的 OnUpdate 用的已经是“本帧事件处理完”之后的状态（以及本帧的 timestep）。
+
+## 日志系统
+i![](20260203234806.png)
+
+## Dispatch的好处
+没有 Dispatch：你要自己用 switch(e.GetEventType()) 分支，再在每一个 case 里手写 static_cast<具体事件类型>(e)，既容易写错又不安全。
+有 Dispatch：你只声明「我要处理 KeyPressedEvent / MouseScrolledEvent / …」，类型检查和「把 Event& 转成具体类型再调你的函数」都由 Dispatch<T> 在内部完成，这就是“用 Dispatch 做安全向下转型、避免手写 switch 和强转”的意思。
+
+## 事件系统
+多态 + 类型安全：基类 Event + 虚函数，具体类型用 EventDispatcher::Dispatch<T> 做安全向下转型，避免手写 switch(event.GetEventType()) 和强转。
+Handled 机制：用 Handled 和「从 overlay 到 layer 的遍历顺序」实现事件在层级间的「被消费」语义，适合 UI/相机/输入等分层处理。
+宏减少样板代码：EVENT_CLASS_TYPE / EVENT_CLASS_CATEGORY 保证每种事件类型和分类声明一致，便于维护和扩展新事件。
+平台解耦：事件类型和分发逻辑都在引擎层；平台层（如 WindowsWindow）只负责把 GLFW 回调转成 Hazel 的 Event 并调用 EventCallback，便于以后加其他平台或换成其他窗口库。
+当前是同步阻塞：注释里也提到，未来可以改为「事件入队 + 在固定阶段从队列里取事件再分发」，以支持更复杂的逻辑或多线程。
+如果你需要，我可以再按「如何加一种新事件类型」或「如何改成事件队列」拆成面试回答的步骤说明。
+
+## GLFW中的触发回调事件是和hazel主线程同步还是异步的
+结论先说：GLFW 的回调是在调用 glfwPollEvents() 的同一线程里、同步执行的，也就是和 Hazel 主线程同步。
+
+## 轮询api
+轮询 API 的实现（每帧可调）：
+bool Input::IsKeyPressed(const KeyCode key)
+{
+    auto* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
+    auto state = glfwGetKey(window, static_cast<int32_t>(key));
+    return state == GLFW_PRESS;
+}
+
+## 渲染系统 renderer、renderCommand、vertexArray抽象类作用
+RenderCommand：和“这一帧/当前要执行什么 GL 命令、设什么全局状态”相关（清屏、视口、线宽、发起绘制）。
+VertexArray：和“某一份几何数据怎么创建、怎么绑定”相关（VBO/IBO、layout、Bind）。
+所以“同样是 gl 语言”，有的进 RenderCommand、有的进 VertexArray，是因为按职责拆成了“命令层”和“资源层”，而不是按“是不是 GL 调用”来分。
+RenderCommand 负责“能画什么”（底层命令），Renderer 负责“按场景、相机、物体来组织怎么画”（上层流程）。 需要 Renderer 的原因就是：把“当前场景 + 多次绘制”抽象成一个清晰流程，并复用相机数据，而不是为了替代 RenderCommand。
+
+## buffer、uniformBuffer
+Buffer：几何数据，和 VAO 绑定，有顶点布局，按顶点/按索引用，用来“画什么形状”。
+UniformBuffer：常量数据，按 binding 绑定，无 C++ 端布局（Shader 里 std140），整批/整帧共用，用来“相机、全局参数等”。
+所以：Buffer = 顶点/索引数据（画什么）；UniformBuffer = 全局 uniform 数据（用什么相机/参数画）。
+
+## 渲染系统实现了哪些功能
+1.	场景渲染管理
+•	支持场景的初始化、关闭、窗口大小调整（自动设置视口）。
+•	支持多种摄像机类型（正交摄像机、通用摄像机、编辑器摄像机）进行场景渲染。
+2.	2D渲染功能
+•	支持绘制各种2D图元，包括：
+•	普通矩形（Quad）
+•	旋转矩形（Rotated Quad）
+•	圆形（Circle）
+•	线段（Line）
+•	矩形边框（Rect）
+•	精灵（Sprite，支持贴图和颜色混合）
+•	支持批量渲染（Batching），自动管理顶点缓冲区和索引缓冲区，提升性能。
+•	支持多纹理绑定和采样，自动分配纹理槽。
+•	支持自定义颜色、纹理、平铺因子（TilingFactor）、实体ID（用于编辑器选中等功能）。
+3.	渲染命令抽象
+•	封装了底层渲染API（如OpenGL），提供统一的渲染命令接口，包括：
+•	设置视口
+•	设置清屏颜色
+•	清屏
+•	绘制索引图元
+•	绘制线段
+•	设置线宽
+4.	FrameBuffer支持
+5.	统计与性能分析
+•	统计DrawCall数量、渲染的Quad数量等，便于性能分析和优化。
