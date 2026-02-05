@@ -560,7 +560,7 @@ attn_bias_for_masking : [1, 1, l_end, l_end] this is masking
 
 x_BLC->transformer->x_BLC
 
-TODO: there we using diffusion in x_BLC
+TODO: there we using diffLoss in x_BLC
 
 x_BLC : [B, 680, C2] -> [B, 680, C3] in this case C3 = 4096
 return x_BLC
@@ -606,7 +606,7 @@ accu_BChw : [1, 32, 16, 16] all zero
 
 
 the main point is the function get_scale_logits
-TODO: add the diffusion in get_scale_logits
+TODO: add the diffLoss in get_scale_logits
 
 
 ## eval.ipynb
