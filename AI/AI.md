@@ -563,6 +563,9 @@ x_BLC->transformer->x_BLC
 TODO: there we using diffLoss in x_BLC
 
 x_BLC : [B, 680, C2] -> [B, 680, C3] in this case C3 = 4096
+
+// here we add diffloss
+
 return x_BLC
 
 ## SRtrainer::train_step
@@ -577,12 +580,10 @@ logits_BLV, diff_loss = SRVAR::forward(inp_B3HW_low, x_BLCv_wo_first_l_super)
 
 loss = train_loss(logits_BLV.view(B * 680, C3), gt_BL_super.view(-1))
 
-so this most important point is the two function:
+so this most important point is the two function: see LetsGo.md
 1. img_to_idxBl
 2. idxBl_to_var_input
 
-## img_to_idxBl
-## idxBl_to_var_input
 
 ## SRVAR::autoregressive_infer_cfg
 low_f = encode(inp_B3HW_low) [1, 32, 16, 16] 
@@ -596,17 +597,66 @@ cu_seqlens_k = cumsum((0, lens))
 kv_compact = [B, 2*h1*w1, C] = low_f
 kv_compact = [B*2*h1*21, C]
 kv_compact = [someplace(in lowlen unit) replaced by cfg_uncond] in dimension 0
+ca_kv = kv_compact, cu_seqlens_k, max_seqlen_k
+
 cond_BD = sos = low_proj_for_sos(kv_compact) [B, C2] in this case C2 = 1024 
+last_stage = sos -> [B, 1, C2] + pos_start : [1, first_l = 1, C2] -> [B, 1, C2]
 
 cond_BD_or_gss = shared_ada_lin(cond_BD) # gss: gamma, scale, shift;torch.Size([B, 1024]) 这里的B也是1
 accu_BChw, cur_L, ret = None, 0, []  
 idx_Bl_list = []
 
 accu_BChw : [1, 32, 16, 16] all zero
+num_stages_minus_1 = len(scale_schedule) - 1
+
+for si, pn in enumerate(scale_schedule):
+    num_pn = pn * pn
+    cur_L += num_pn
+    nex_is = si + 1
+
+    // 这里使用了get_scale_logits
+    BlV = last_stage -> transformer -> last_stage(with ca_kv as cross_attention) shape : [B, pn * pn, C2] 
+·
+    if(si == num_stages_minus_1) // so because enumerate index from 0, so this is last stage
+        last_layer_cond = BlV
+        last_layer_cond -> [B, C2, 16, 16]
+    logits_BlV = get_logits(BlV[:B], cond_BD[:B]) // logits_BlV : [B, pn * pn, C2] -> [B, pn * pn, C3] in this case C3 = 4096
+
+    here beam_search_nums < 0
+    idx_Bl = sample_with_top_k_top_p_(logits_BlV, num_samples = 1) // idx_Bl : [B, l, 1]
+
+    h_BChw = vae.quantize.embedding(idx_Bl).float()   # BlC
+    h_BChw : [B, l, C] -> [B, C, l] -> [B, C, pn, pn]
+
+    ret.append(idx_Bl)
+    idx_Bl_list.append(idx_Bl)
+
+    accu_BChw, last_stage = get_next_autoregressive_input(h_BChw)
+    // accu_BChw shape 不变， last_stage [B, C, p(n+1), p(n+1)], 
+    // get_next_autoregressive_input内部是先累加，累加完之后再插值，相当于last_stage是accu_BChw插值插出来的
+
+    if si != num_stages_minus_1:
+        last_stage : [B, vae.Cvae, p(n+1), p(n+1)] -> [B, vae.Cvae, -1] -> [B, L, vae.Cvae]
+        last_stage : [B, L, vae.Cvae] -> [B, L, C2 which is self.C]
+
+// 这里我想补充一点，var中的vqvae完整流程是encoder->quant_conv->quantize->post_quant_conv->decoder
+// 所以fhat_to_img 实际上是post_quant_conv->decoder
+img = vae.fhat_to_img(accu_BChw)
+other operation to img (not important)
+
+return ret, idx_Bl_list, img
 
 
+<<<<<<< HEAD
 the main point is the function get_scale_logits
 TODO: add the diffLoss in get_scale_logits
+=======
+## SRVAR::get_scale_logits
+just a transformer with CrossAttnBlock I don't know why name it get_scale_logits
+
+## sample_with_top_k_top_p_
+![](20250918144614.png)
+>>>>>>> 8f9c0fa (modify AI.md)
 
 
 ## eval.ipynb
@@ -617,7 +667,7 @@ x_BLCv_wo_first_l_super : idxBl_to_var_input(gt_idx_Bl_super) # torch.Size([4, 6
 
 ret, idx_Bl_list, img = srvar.autoregressive_infer_cfg(...)
 
-
+so we get img, done
 
 
 # MAR
@@ -637,8 +687,9 @@ mask : [B, L] -> [B, L + buffer_size]
 mask_tokens : [1, 1, C] -> [B, L + buffer_size, C]
 x_after_pad : [B, L + buffer_size, C] -> [B, L + buffer_size, C] (将 x 的值传递给 x_after_pad中为0 的部分， 长度应该刚刚好)
 x = x_after_pad + self.decoder_pos_embed_learned
+// need to attention that the exist token also through transformer
 x -> transformer -> x
-x = x[:, self.buffer_size:]
+x = x[:, self.buffer_size:] : [B, L, C](cut after transformer)
 x = x + self.diffusion_pos_embed_learned
 return x
 
@@ -649,7 +700,7 @@ diffusion_batch_mul = dbm
 target : [B * L, C] -> [dbm * B * L, C]
 z : [B * L, C] -> [dbm * B * L, C]
 mask : [B * L, C] -> [dbm * B * L, C]
-loss = diffloss(z, target, mask)
+loss = (z, target, mask)
 return loss
 
 ## DiffLoss::forward
